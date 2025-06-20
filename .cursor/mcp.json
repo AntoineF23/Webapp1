@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "deepwiki": {
+      "type": "sse",
+      "url": "https://mcp.deepwiki.com/sse"
+    },
+    "convex": {
+      "command": "npx",
+      "args": ["-y", "convex@latest", "mcp", "start"]
+    }
+  }
+}

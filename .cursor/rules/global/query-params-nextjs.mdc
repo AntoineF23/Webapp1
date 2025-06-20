@@ -1,0 +1,91 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Query Parameters in Next.js App Router
+
+Best practices for accessing, reading, and updating query parameters (search params) in Next.js App Router. Auto-included for all files in the app directory.
+
+<rule>
+name: query_params_nextjs
+description: Best practices for using query parameters (search params) in Next.js App Router. Auto-included for all files in the app directory.
+globs: ["app/**/*.{ts,tsx}"]
+filters:
+  - type: file_extension
+    pattern: "\.tsx?$"
+actions:
+  - type: suggest
+    message: |
+      **Server Components:**
+      - Access query parameters via the `searchParams` prop, which is a Promise in Next.js 15+ and must be awaited.
+      - Example:
+        ```tsx
+        export default async function Page({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+          const params = await searchParams
+          const value = params['yourQueryParam']
+        }
+        ```
+      **Client Components:**
+      - Use the `useSearchParams` hook from `next/navigation` to access query params reactively.
+      - Example:
+        ```tsx
+        'use client'
+        import { useSearchParams } from 'next/navigation'
+        export default function MyComponent() {
+          const searchParams = useSearchParams()
+          const value = searchParams.get('yourQueryParam')
+        }
+        ```
+      **Updating Query Params (Client):**
+      - Use `useRouter`, `usePathname`, and a helper to update the URL's query params.
+      - Example:
+        ```tsx
+        'use client'
+        import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+        import { useCallback } from 'react'
+        export default function Example() {
+          const router = useRouter()
+          const pathname = usePathname()
+          const searchParams = useSearchParams()
+          const createQueryString = useCallback((name, value) => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set(name, value)
+            return params.toString()
+          }, [searchParams])
+          return (
+            <button onClick={() => router.push(pathname + '?' + createQueryString('yourQueryParam', 'newValue'))}>
+              Update Query Param
+            </button>
+          )
+        }
+        ```
+      - Always use the App Router conventions and avoid deprecated Pages Router APIs.
+examples:
+  - input: |
+      // Bad: Using getServerSideProps to access query params
+      export async function getServerSideProps(context) {
+        const { query } = context
+        return { props: { query } }
+      }
+    output: "Do not use Pages Router APIs like getServerSideProps. Use the App Router's searchParams prop or useSearchParams hook."
+  - input: |
+      // Good: Using searchParams in a server component
+      export default async function Page({ searchParams }) {
+        const params = await searchParams
+        const value = params['foo']
+      }
+    output: "Correct usage of searchParams in a server component."
+  - input: |
+      // Good: Using useSearchParams in a client component
+      'use client'
+      import { useSearchParams } from 'next/navigation'
+      export default function MyComponent() {
+        const searchParams = useSearchParams()
+        const value = searchParams.get('foo')
+      }
+    output: "Correct usage of useSearchParams in a client component."
+metadata:
+  priority: high
+  version: 1.0
+</rule>

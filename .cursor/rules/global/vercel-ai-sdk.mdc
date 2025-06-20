@@ -1,0 +1,176 @@
+---
+description: Standards for Vercel AI SDK usage
+globs: **/*.ts,**/*.tsx,**/app/api/**
+alwaysApply: false
+---
+
+# Vercel AI SDK Best Practices
+
+Best practices and patterns for working with the Vercel AI SDK. Auto-included for files using AI SDK.
+
+<rule>
+name: vercel_ai_sdk_best_practices
+description: Best practices and patterns for working with the Vercel AI SDK
+globs: ["**/*.ts", "**/*.tsx", "**/app/api/**"]
+filters:
+  - type: content
+    pattern: "@ai-sdk|streamText|openai\\.responses|tool\\(|z\\.object"
+actions:
+  - type: suggest
+    message: |
+      Follow these Vercel AI SDK best practices:
+
+      1. API Structure:
+         - Place AI-related API routes in app/api/
+         - Use edge runtime for better performance
+         - Structure API endpoints by feature or capability
+         - Implement proper error handling and status codes
+
+      2. Model Configuration:
+         - Use environment variables for API keys
+         - Configure models with appropriate parameters
+         - Set reasonable temperature values based on use case
+         - Implement token usage tracking when needed
+
+      3. Streaming Best Practices:
+         - Use streamText for real-time responses
+         - Implement proper UI for streaming responses
+         - Handle connection errors gracefully
+         - Provide fallback content during loading
+
+      4. Tool Calling Implementation:
+         - Define tools with clear descriptions
+         - Use Zod for parameter validation
+         - Implement proper error handling in tool execution
+         - Structure tools by functionality
+
+      5. Security Considerations:
+         - Never expose API keys in client-side code
+         - Implement rate limiting for AI endpoints
+         - Validate user input before sending to models
+         - Consider content filtering for generated outputs
+
+      6. Performance Optimization:
+         - Use edge runtime for faster response times
+         - Consider caching for repetitive queries
+         - Optimize prompt design for efficiency
+         - Monitor and optimize token usage
+
+      7. Type Safety:
+         - Define proper types for request/response objects
+         - Use Zod for runtime validation
+         - Create custom type definitions for complex structures
+         - Maintain consistent type patterns across the application
+
+examples:
+  - input: |
+      // Bad: No edge runtime, missing error handling
+      // app/api/chat/route.ts
+      import { openai } from "@ai-sdk/openai";
+      import { streamText } from "ai";
+
+      export async function POST(req: Request) {
+        const { messages } = await req.json();
+        const result = streamText({
+          model: openai.responses("gpt-4o"),
+          messages,
+        });
+        return result.toDataStreamResponse();
+      }
+
+      // Good: Edge runtime, proper error handling, configuration
+      // app/api/chat/route.ts
+      import { openai } from "@ai-sdk/openai";
+      import { streamText } from "ai";
+      import { NextResponse } from "next/server";
+
+      export const runtime = "edge";
+
+      export async function POST(req: Request) {
+        try {
+          const { messages } = await req.json();
+          
+          const result = streamText({
+            model: openai.responses("gpt-4o"),
+            messages,
+            temperature: 0.7,
+            max_tokens: 800,
+          });
+          
+          return result.toDataStreamResponse();
+        } catch (error) {
+          console.error("Error in AI streaming:", error);
+          return NextResponse.json(
+            { error: "Failed to process your request" },
+            { status: 500 }
+          );
+        }
+      }
+    output: "Implement edge runtime and proper error handling for AI API routes"
+
+  - input: |
+      // Bad: No parameter validation in tools
+      // app/api/tools/route.ts
+      import { openai } from "@ai-sdk/openai";
+      import { streamText, tool } from "ai";
+
+      export async function POST(req: Request) {
+        const { messages } = await req.json();
+        
+        const result = streamText({
+          model: openai.responses("gpt-4o"),
+          messages,
+          tools: {
+            getWeather: tool({
+              description: "Get the weather for a location",
+              execute: async ({ location }) => {
+                // Missing validation for location parameter
+                return { temperature: 22, conditions: "sunny" };
+              }
+            })
+          }
+        });
+        
+        return result.toDataStreamResponse();
+      }
+
+      // Good: Proper parameter validation with Zod
+      // app/api/tools/route.ts
+      import { openai } from "@ai-sdk/openai";
+      import { streamText, tool } from "ai";
+      import { z } from "zod";
+
+      export const runtime = "edge";
+
+      export async function POST(req: Request) {
+        const { messages } = await req.json();
+        
+        const result = streamText({
+          model: openai.responses("gpt-4o"),
+          messages,
+          tools: {
+            getWeather: tool({
+              description: "Get the weather for a location",
+              parameters: z.object({
+                location: z.string().describe("The city and country")
+              }),
+              execute: async ({ location }) => {
+                try {
+                  // Implementation with proper validation
+                  return { temperature: 22, conditions: "sunny" };
+                } catch (error) {
+                  return { error: "Failed to get weather data" };
+                }
+              }
+            })
+          }
+        });
+        
+        return result.toDataStreamResponse();
+      }
+    output: "Use Zod for parameter validation in AI tools and implement proper error handling"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule>
